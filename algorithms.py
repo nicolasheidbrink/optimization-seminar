@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 class TunnelingAlgorithm:
-    def __init__(self, f, f_grad, bounds, verbose=False):
+    def __init__(self, f, f_grad, bounds, verbose=False, fixed_xm = False):
         self.f = f # Objective function
         self.f_grad = f_grad # Gradient of the objective function
         self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
@@ -25,6 +25,8 @@ class TunnelingAlgorithm:
         self.minimization_phase_counter = 0 # Counter to track how many times the minimization phase is called
         self.success = 0 # Counter for successful steps in the restoration algorithm
         self.failure = 0 # Counter for failed steps in the restoration algorithm
+
+        self.fixed_xm = fixed_xm # If True, distance between xm and x_new is independent of x_hat
 
     '''
     Input: Initial point `x_0` for the tunneling algorithm, and maximum number of cycles to perform.
@@ -68,7 +70,8 @@ class TunnelingAlgorithm:
             if next_start is None:
                 break 
             current_x = next_start
-            
+        
+        print(f"Algorithm completed. Best minimum value found: {self.f_star} at points {self.x_stars}") if self.verbose else None
         return self.x_stars, self.f_star
 
     '''
@@ -98,24 +101,24 @@ class TunnelingAlgorithm:
             epsilon = np.random.uniform(-0.1, 0.1, self.dim)
             while np.allclose(x_star, self.apply_bounds(x_star + epsilon)):
                 epsilon = np.random.uniform(-0.1, 0.1, self.dim)
-            print(f"Attempting local perturbation {nr_eps} around {x_star} with epsilon={epsilon}") if self.verbose else None
+            print(f"Attempting local perturbation around {x_star} with epsilon={epsilon} (attempt {nr_eps+1})") if self.verbose else None
 
             # Determine the pole strength in the tunneling function for this minimizer:
-            print(f"looking for appropriate lambda for minimizer") if self.verbose else None
+            print(f"    looking for appropriate lambda for minimizer") if self.verbose else None
             self.lambda_list[-1] = self.find_iterative_lambda(x_star, epsilon)
-            print(f"Found lambda={self.lambda_list[-1]} for minimizer {x_star}") if self.verbose else None
+            print(f"    Found lambda={self.lambda_list[-1]} for minimizer {x_star}") if self.verbose else None
 
             # Search for a point x with T(x) <= eps3, starting the search from x_star + epsilon:
-            print(f"Running restoration algorithm from {x_star + epsilon}") if self.verbose else None
+            print(f"    Running restoration algorithm from {x_star + epsilon}") if self.verbose else None
             next_start = self.run_restoration(x_star + epsilon)
             if next_start is not None:
                 print(f"Found valid start point at {next_start}") if self.verbose else None
                 return next_start
             else:
-                print(f"Local perturbation {nr_eps} around {x_star} failed to find a valid start point.") if self.verbose else None
+                print(f"Local perturbation {nr_eps+1} around {x_star} failed to find a valid start point.") if self.verbose else None
 
         # 2. Global search: If local search fails, try random points in Omega
-        print(f"Global search initiated for minimizer {x_star}") if self.verbose else None
+        print(f"Global search initiated from minimizer {x_star}") if self.verbose else None
         return self.random_tunnel_search()
 
     '''
@@ -137,6 +140,7 @@ class TunnelingAlgorithm:
             self.lambda_list[-1] = l_trial
             
             # Get the displacement vector delta_x (from section 2.3.4)
+            print(f"    Calculating displacement to find lambda") if self.verbose else None
             delta_x = self.get_displacement(x_test, x_star, 0.0)
             t_grad = self.get_t_and_grad(x_test, x_star, 0.0)[1]
 
@@ -173,6 +177,7 @@ class TunnelingAlgorithm:
                     return x_hat
 
             # 2. Calculate Displacement (Section 2.3.4)
+            print(f"        Calculating displacement to find next restoration iterate") if self.verbose else None
             delta_x = self.get_displacement(x_hat, x_m, lambda_0)
 
             # 3. Step-Size Bisection
@@ -182,7 +187,7 @@ class TunnelingAlgorithm:
             for _ in range(self.nb):
                 x_try = self.apply_bounds(x_hat + alpha * delta_x)
                 if self.get_t_and_grad(x_try, x_m, lambda_0)[0] < t_val:
-                    print(f"Next iterate of restoration algorithm: {x_try} with T={self.get_t_and_grad(x_try, x_m, lambda_0)[0]}. Previous t_val was {t_val}. alpha = {alpha} and delta_x = {delta_x}") if self.verbose else None
+                    print(f"    Next iterate of restoration algorithm: {x_try} with T={self.get_t_and_grad(x_try, x_m, lambda_0)[0]}. Previous t_val was {t_val}. alpha = {alpha} and delta_x = {delta_x}") if self.verbose else None
                     x_new = x_try
                     success = True
                     self.success += 1
@@ -195,20 +200,24 @@ class TunnelingAlgorithm:
 
             # 4. Handle Movable Pole (Appendix I, Step 3)
             x_m = self.determine_xm(x_hat, x_new)
-            print(f"Updated movable pole position to x_m={x_m}") if self.verbose else None
+            print(f"        Updated movable pole position to x_m={x_m}") if self.verbose else None
+            print(f"        Calculating displacement to see if lambda_0 has to be increased") if self.verbose else None
             delta_x_from_x_new_to_x_tilde = self.get_displacement(x_new, x_m, lambda_0)
             u = np.dot(x_new - x_hat, delta_x_from_x_new_to_x_tilde) 
             if u <= 0:
                 # landed in undesirable local minimum of T(x); update pole[cite: 1]
                 lambda_0 = self.find_iterative_lambda_0(x_hat, x_new, x_m)
-                print(f"Updating lambda_0 to {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
+                print(f"        Updating lambda_0 to {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
             else:
                 # Heuristic reset rule (A.9): return to simpler geometry[cite: 1]
                 # Compute displacement for lambda_0 = 0[cite: 1]
+                print(f"        Calculating displacement to see if lambda_0 can be reset to 0") if self.verbose else None
                 delta_x_0 = self.get_displacement(x_new, x_m, 0.0)
                 if np.dot(delta_x_0, delta_x_from_x_new_to_x_tilde) > 0:
-                    print(f"Heuristic reset: resetting lambda_0 to 0 for movable pole at x_m={x_m}") if self.verbose else None
+                    print(f"        Resetting lambda_0 to 0 for movable pole at x_m={x_m}") if self.verbose else None
                     lambda_0 = 0.0
+                else:
+                    print(f"        Keeping lambda_0 at {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
 
             x_hat = x_new
             
@@ -225,11 +234,12 @@ class TunnelingAlgorithm:
     def find_iterative_lambda_0(self, x_hat, x_new, x_m):
         l0 = 1.0
         while l0 <= self.lambda_max:
+            print(f"        Calculating displacement to see if lambda_0 increase to {l0} is sufficient") if self.verbose else None
             delta_x_from_x_new_to_x_tilde = self.get_displacement(x_new, x_m, l0)
             # If the step taken away from x_new is in the same general direction (acute angle) as the step taken from 
             # x_hat to x_new, then the lambda_0 is satisfactory. Otherwise, increase lambda_0 and try again.
             if np.dot(x_new - x_hat, delta_x_from_x_new_to_x_tilde) > 0:
-                print(f"Found lambda_0={l0} for movable pole at x_m={x_m}") if self.verbose else None
+                print(  f"      Found lambda_0={l0} for movable pole at x_m={x_m}") if self.verbose else None
                 return l0
             l0 += 1.0
         print(f"Warning: lambda_0 reached maximum value of {self.lambda_max} without satisfying condition.") if self.verbose else None
@@ -247,8 +257,9 @@ class TunnelingAlgorithm:
         t_val, t_grad = self.get_t_and_grad(x, x_m, lambda_0)
         denom = np.dot(t_grad, t_grad)
         # Eq. in section 2.3.4[cite: 1]
-        print(f"Calculating displacement with t_val={t_val}, t_grad={t_grad}, and denom={denom}") if self.verbose else None
-        return -(t_val / max(denom, 1e-20)) * t_grad
+        displacement = -(t_val / max(denom, 1e-20)) * t_grad
+        print(f"        Displacement calculated as {displacement} using t_val={t_val}, t_grad={t_grad}") if self.verbose else None
+        return displacement
 
     '''
     Input: Two iterates `x_hat` (an iterate from the tunneling phase) and `x_new` (the following iterate).
@@ -261,15 +272,16 @@ class TunnelingAlgorithm:
     '''
     def determine_xm(self, x_hat, x_new):
 
-        if np.linalg.norm(x_hat - x_new) != 0:
-            return x_new + (x_hat - x_new) * 0.9 / np.linalg.norm(x_hat - x_new) #here222
-        else:
-            return x_hat
+        if self.fixed_xm:
+            if np.linalg.norm(x_hat - x_new) != 0:
+                return x_new + (x_hat - x_new) * 0.9 / np.linalg.norm(x_hat - x_new) #here222
+            else:
+                return x_hat
 
         dist = np.linalg.norm(x_hat - x_new)
         if dist < 1: return np.copy(x_hat)
         xi = 0.9 / dist # 1.5 seemed a little better in a small test
-        print(f"Updating movable pole position to xm={xi*x_hat + (1 - xi) * x_new}") if self.verbose else None
+        print(f"        Updating movable pole position to xm={xi*x_hat + (1 - xi) * x_new}") if self.verbose else None
         return xi * x_hat + (1 - xi) * x_new
 
     '''
