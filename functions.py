@@ -198,3 +198,11 @@ def altered_cos(x):
 def altered_cos_grad(x):
     x = np.asarray(x)
     return np.array([-np.sin(x[0]) + 0.4 * x[0]])
+
+def sinx_cosy(x):
+    x = np.asarray(x)
+    return np.array([np.sin(x[0]) + np.cos(x[1])])
+
+def sinx_cosy_grad(x):
+    x = np.asarray(x)
+    return np.array([np.cos(x[0]), -np.sin(x[1])])

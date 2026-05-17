@@ -71,7 +71,7 @@ class TunnelingAlgorithm:
                 break 
             current_x = next_start
         
-        print(f"Algorithm completed. Best minimum value found: {self.f_star} at points {self.x_stars}") if self.verbose else None
+        print(f"Algorithm completed. Best minimum value found: {self.f_star} at {len(self.x_stars)} points: {self.x_stars}") if self.verbose else None
         return self.x_stars, self.f_star
 
     '''
@@ -195,8 +195,9 @@ class TunnelingAlgorithm:
                 alpha /= 2.0
             
             if not success:
-                print(f"Restoration algorithm failed to find a better point from {x_hat} with T={t_val}") if self.verbose else None
+                print(f"    Restoration algorithm failed to find a better point from {x_hat} with T={t_val}") if self.verbose else None
                 self.failure += 1
+                break
 
             # 4. Handle Movable Pole (Appendix I, Step 3)
             x_m = self.determine_xm(x_hat, x_new)
@@ -242,7 +243,7 @@ class TunnelingAlgorithm:
                 print(  f"      Found lambda_0={l0} for movable pole at x_m={x_m}") if self.verbose else None
                 return l0
             l0 += 1.0
-        print(f"Warning: lambda_0 reached maximum value of {self.lambda_max} without satisfying condition.") if self.verbose else None
+        print(f"        Warning: lambda_0 reached maximum value of {self.lambda_max} without satisfying condition.") if self.verbose else None
         return self.lambda_max
 
 
