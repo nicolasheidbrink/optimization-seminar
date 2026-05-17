@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 class TunnelingAlgorithm:
-    def __init__(self, f, f_grad, bounds, verbose=False, fixed_xm = False):
+    def __init__(self, f, f_grad, bounds, verbose=False, improved = True):
         self.f = f # Objective function
         self.f_grad = f_grad # Gradient of the objective function
         self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
@@ -11,7 +11,7 @@ class TunnelingAlgorithm:
         self.lambda_list = [] # Pole strengths for each x_star
         self.f_star = np.inf # Best known minimum value of f
 
-        self.eps1 = 1e-9 # Threshold for considering a new minimum better than f_star
+        self.eps1 = 1e-3 # Threshold for considering a new minimum better than f_star; the paper recommended 1e-9
         self.eps2 = 1e-5 # Transition width for the ramp function in eta
         self.eps3 = 1e-3 # Threshold for considering a point as a good enough to end the tunneling phase
         self.lambda_max = 5 # Maximum pole strength to consider during lambda search
@@ -26,7 +26,7 @@ class TunnelingAlgorithm:
         self.success = 0 # Counter for successful steps in the restoration algorithm
         self.failure = 0 # Counter for failed steps in the restoration algorithm
 
-        self.fixed_xm = fixed_xm # If True, distance between xm and x_new is independent of x_hat
+        self.improved = improved # If True, distance between xm and x_new is independent of x_hat
 
     '''
     Input: Initial point `x_0` for the tunneling algorithm, and maximum number of cycles to perform.
@@ -97,10 +97,18 @@ class TunnelingAlgorithm:
     '''
     def tunneling_phase(self, x_star):
         # 1. Local search: Try random perturbations around the last found minimizer
-        for nr_eps in range(self.n_random_starts):
-            epsilon = np.random.uniform(-0.1, 0.1, self.dim)
-            while np.allclose(x_star, self.apply_bounds(x_star + epsilon)):
-                epsilon = np.random.uniform(-0.1, 0.1, self.dim)
+        epsilons = []
+        if self.improved:
+            for direction in [-0.05, 0.05]:
+                for i in range(self.dim):
+                    ep = np.zeros(self.dim)
+                    ep[i] = direction
+                    epsilons.append(ep)
+        else:
+            for _ in range(self.n_random_starts):
+                epsilons.append(np.random.uniform(-0.1, 0.1, self.dim))
+
+        for nr_eps, epsilon in enumerate(epsilons):
             print(f"Attempting local perturbation around {x_star} with epsilon={epsilon} (attempt {nr_eps+1})") if self.verbose else None
 
             # Determine the pole strength in the tunneling function for this minimizer:
@@ -122,7 +130,7 @@ class TunnelingAlgorithm:
         return self.random_tunnel_search()
 
     '''
-    Input: A new minimizer `x_star` and and a perturbation vector `epsilon_vec`.
+    Input: A new minimizer `x_star` and and a perturbation vector `epsilon`.
     Output: A pole strength `lambda` for the pole at `x_star` in the tunneling function.
 
     This function iteratively tests increasing values of `lambda` for the pole being added at `x_star` to ensure that the 
@@ -260,6 +268,8 @@ class TunnelingAlgorithm:
         # Eq. in section 2.3.4[cite: 1]
         displacement = -(t_val / max(denom, 1e-20)) * t_grad
         print(f"        Displacement calculated as {displacement} using t_val={t_val}, t_grad={t_grad}") if self.verbose else None
+        
+        
         return displacement
 
     '''
@@ -273,7 +283,7 @@ class TunnelingAlgorithm:
     '''
     def determine_xm(self, x_hat, x_new):
 
-        if self.fixed_xm:
+        if self.improved:
             if np.linalg.norm(x_hat - x_new) != 0:
                 return x_new + (x_hat - x_new) * 0.9 / np.linalg.norm(x_hat - x_new) #here222
             else:
