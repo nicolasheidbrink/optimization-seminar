@@ -1,0 +1,448 @@
+%%%
+%
+% Vorlage für Abschlussarbeiten am Lehrstuhl Prof. Stein, IOR
+%
+% Stand 9.7.2025
+%
+% (Compilierung per pdflatex)
+%
+%%%
+
+\documentclass[a4paper,12pt,twoside]{article}
+\usepackage[
+inner = 3.75cm,
+outer = 3.75cm
+]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\leftmark}
+\fancyfoot[LE,RO]{\thepage}
+\usepackage{emptypage}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18} % Good practice to ensure consistent rendering
+% Define the functions using pgfmath syntax
+\pgfplotsset{
+    declare function={
+        f(\x) = cos(deg(\x)) + (\x^2)/5;
+        eta(\x) = (abs(\x - 2.1253) < 0.99999) ? 1 : 
+                  ((abs(\x - 2.1253) > 1.00001) ? 0 : 
+                  (1 - (abs(\x - 2.1253) - 0.99999) / 0.00002));
+        g(\x) = f(\x) / (abs(\x - 2.1253)^(2 * eta(\x)));
+    }
+}
+
+\usepackage{eurosym}
+\usepackage{amssymb,amsmath}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+
+
+\usepackage{graphicx} 
+\usepackage{color}
+\definecolor{kit}{cmyk}{1,0,0.6,0}
+
+\usepackage{hyperref}
+\hypersetup{pdftoolbar=true,
+            pdfmenubar=true,
+            pdfpagemode=UseOutlines,
+            bookmarksnumbered=true,
+            linktocpage=true,
+            colorlinks=false,
+            colorlinks=false
+            }
+
+%Literatur
+\usepackage[
+backend=biber,
+hyperref=true,
+maxbibnames=6,
+]{biblatex}
+\addbibresource{refs.bib}
+\renewcommand*{\newunitpunct}{\addcomma\space}
+\renewbibmacro{in:}{}
+\DeclareFieldFormat{url}{\url{#1}}
+
+\newtheorem{definition}{Definition}[section]
+\newtheorem{satz}[definition]{Satz}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{korollar}[definition]{Korollar}
+\newtheorem{proposition}[definition]{Proposition}
+\newtheorem{bemerkung}[definition]{Bemerkung}
+\newtheorem{beispiel}[definition]{Beispiel}
+\newtheorem{problem}[definition]{Problem}
+\newtheorem{Voraussetzung}[definition]{Voraussetzung}
+\newtheorem{algorithmus}[definition]{Algorithmus}
+\newtheorem{vermutung}[definition]{Vermutung}
+
+\setlength{\parindent}{0pt}
+\parskip1.5ex
+
+\newcommand{\R}{\mathbb R} % Beispiel für die Definition eines eigenen Befehls
+\DeclareMathOperator{\conv}{conv} % Beispiel für die Definition eines mathematischen Operators
+
+\begin{document}
+\begin{titlepage}
+
+\begin{center}
+\vspace*{-80pt}
+\includegraphics[scale=0.65]{kit_logo}
+
+\vspace*{40pt}
+
+KIT Department of Business and Economics \\[1ex]
+Institute for Operations Research (IOR) \\[1ex]
+Continuous Optimization \\[1ex]
+Prof. Dr. Oliver Stein          
+
+\vspace*{25pt}
+
+\Large{Seminar Paper}    
+
+\vspace*{30pt}
+
+\fboxsep 40pt
+\fboxrule 6pt
+\fcolorbox{kit}{white}{\parbox{80mm}{\begin{center}\Large{Strategies to Avoid Poor Local Minima in Nonlinear Optimization} \end{center}}}
+
+\vspace*{30pt}
+
+\normalsize
+
+by \\[4ex]
+
+Nicolas Heidbrink\\
+Matr. Nr.: 2538298\\
+Industrial Engineering and Management (Bachelor)\\[4ex]
+
+
+Submission Date\\
+09.06.2026 \\[4ex]
+
+
+Supervisor:
+Stefan Schwarze, M. Sc.
+
+
+
+\end{center}
+
+\end{titlepage}
+\clearpage{\thispagestyle{empty}\cleardoublepage}
+
+\vspace*{2eM}
+
+{\Large \textbf{Declaration}} 
+
+\bigskip
+
+I hereby certify that I have authored this thesis independently, that I have fully indicated all sources and aids used, and that I have marked all contents taken from the works of others. Furthermore, I have complied with the KIT Statutes for Safeguarding Good Research Practice in their currently valid version.\\
+
+\vspace*{3eM}
+
+\textit{Datum} \hspace{8cm} \textit{Nicolas Heidbrink}
+\thispagestyle{empty}
+\clearpage{\thispagestyle{empty}\cleardoublepage}
+
+
+\setcounter{page}{3}
+
+\tableofcontents
+
+\clearpage{\thispagestyle{empty}\cleardoublepage}
+
+\section{Introduction}
+
+Zum Einstieg in \LaTeX\ empfehlen wir die Seite
+
+\href{http://archiv.dante.de/TeX-Service/TSP/tex/cookbook/cookbook.html}{\texttt{http://archiv.dante.de/TeX-Service/TSP/tex/cookbook/cookbook.html}}.
+
+Den Quelltext \texttt{vorlage.tex} dieses Dokuments kann man zum Beispiel mit \texttt{pdflatex} kompilieren.
+
+
+\section{Explanation of Tunneling Algorithm}
+
+The tunneling algorithm as presented in Levy and Montalvo's paper works by alternating between two phases: In the minimization phase, a minimization algorithm is run on the current iterate. The result is a local minimal point $x_i^\star$ with $f(x_i^\star) =:$ $f^\star$.
+
+In the tunneling phase, the goal is to find a new point in the feasible set of the problem with an objective function value equal to or less than that of the previous local minimal point. An auxiliary tunneling function is defined that takes positive values for points $x_j$ with $f(x_j) > f^\star$ and non-positive values for previously undiscovered points $x_j$ with $f(x_j) \leq f^\star$. The tunneling phase implements a descent method on the tunneling function and terminates with the first point found with a non-positive tunneling function value.
+
+
+
+
+\subsection{The auxiliary function}
+\subsubsection{The }
+Levy and Montalvo define their tunneling function as
+\begin{equation}
+    T(x) = \frac{
+        f(x) - f^\star}{ 
+        \{ \prod_{i = 1}^l [(x - x^\star_i)^T(x - x^\star_i)]^{\eta_i} \} 
+        [(x-x_m)^T(x-x_m)]^{\lambda_0}},
+\end{equation}
+
+with the minimal previously found objective function value $f^\star$, discovered minimal points $x_i: f(x_i) = f^\star$, and another point $x_m$ designed to accelerate the algorithm by negating irrelevant local minimal points of the tunneling function. 
+
+The denominator is non-negative because it is the product of exponentiated squared norms. Therefore, the sign of the tunneling function is strictly dependent on the sign of the numerator: If $f(x) > f^\star$, then $T(x) > 0$; if $f(x) = f^\star$, then $T(x) = 0$; and if $f(x) < f^\star$, then $T(x) < 0$.
+
+\subsubsection{The first term of the denominator}
+
+The first term of the denominator, $\prod_{i = 1}^l [(x - x^\star_i)^T(x - x^\star_i)]^{\eta_i}_i$, introduces poles at all previously discovered local minima $x_i$ that share the function value $f^\star$. That way, searches over $T(x)$ for new points with objective function values less than or equal to $f^\star$ will not return previously found points, and iterates are directed away from such points by descent methods.
+
+The proof that an exponent $\eta_i$ which introduces a pole at $T(x_i^\star)$ can always be found is omitted from the paper, but the statement can be shown for twice continuously differentiable functions $f$ at isolated minimizers $x_i^\star$ as follows:
+
+As previously stated, the sign of $T(x)$ depends only on its numerator, which is non-negative in a neighborhood of $x_i^\star$ for all $i$ because $f(x_i^\star) - f^\star = 0$ and $x_i^\star$ is a local minimal point of $f(x)$. Therefore, the points around any pole at a local minimal point will diverge to $+\infty$.
+
+
+The Taylor expansion of the numerator around $x_i^\star$ is  
+\[
+f(x) \approx f(x_i^\star) + \nabla f(x_i^\star)^T(x-x_i^\star) + \frac{1}{2}(x-x_i^\star)^T D^2f(x_i^\star)(x-x_i^\star) + ...
+\]
+
+If $x_i^ \star$ is a non-degenerate minimizer of $f(x)$ that satisfies the First Order Necessary Optimality Condition $\nabla f(x_i^\star) = 0$, e.g. a local minimal point in the interior of the feasible set, the Taylor expansion at that point can be rearranged to
+\begin{align*}
+f(x) - f^\star &=  \frac{1}{2} (x-x_i^\star)^T D^2f(x_i^\star)(x-x_i^\star) + \dots  \\ 
+&\approx O(\|x-x_i^\star\|^2).
+\end{align*}
+
+As $x \to x_i^\star$, $[(x-x_i^\star)^T(x-x_i^\star)]^{\eta_i}$ approaches $0$ and the other terms in the denominator of $T(x)$ approach constant, finite values, meaning they can be ignored for an asymptotical approximation of $T(x)$ at $x_i^\star$:
+
+\[
+T(x) \approx \frac{O(\|x-x_i^\star\|)^2}{[(x-x_i^\star)^T(x-x_i^\star)]^{\eta_i}}
+= \frac{O(\|x-x_i^\star\|)^2}{\|x-x_i^\star\|^{2\eta_i}}
+\]
+
+If $2\eta_i > 2$, then $\lim_{x \to x_i^\star} T(x) = \infty $ and there is a pole at $x_i^\star$.
+
+Even if $x_i^\star$ is a degenerate minimizer, $f(x) - f^\star$ can similarly be asymptotically approximated with $O(\|x-x_i^\star\|^p)$, with $p$ being the order of its first non-zero derivative. In that case, $\eta_i$ must fulfill $2\eta_i > p$ to guarantee a pole.
+
+If however $x_i^\star$ is a minimizer of $f(x)$ on the boundary of the feasible set, it no longer necessarily fulfills the First Order Necessary Optimality Condition. If the First Order Necessary Optimality Condition is not fulfilled, the Taylor expansion at that point can be rearranged to
+
+\begin{align*}
+f(x) - f^\star &= \nabla f(x_i^\star)^T(x-x_i^\star) + \frac{1}{2} (x-x_i^\star)^T H(x_i^\star)(x-x_i^\star) + ... \\ 
+&\approx O(\|x-x_i^\star\|)
+\end{align*}
+
+
+Analogously to the first case, the convergence of $T(x)$ around $x_i^\star$ can be examined with the approximation
+
+\[
+T(x) \approx \frac{O(\|x-x_i^\star\|)}{\|x-x_i^\star\|^{2\eta_i}}
+\]
+
+For $\|x-x_i^\star\| \to 0$, the limit of $T(x)$ is infinite if $2\eta_i > 1$.
+
+
+\subsubsection{The second term of the denominator}
+
+
+The second term, $[(x-x_m)^T(x-x_m)]^{\lambda_0}$, introduces poles around irrelevant local minima of the tunneling function. This helps prevent whatever algorithm is used to search for points $x$ with $T(x) \leq 0$ from getting stuck. 
+
+After each descent step on $T(x)$ from $\hat x$ to $x$, the location of the movable pole $x_m$ is set as 
+\begin{equation}\label{eq:xm}
+    x_m:=\begin{cases}
+        \hat{x} & \text{if } \|\hat{x}-x\| < 1, \\ 
+        \xi\hat{x} + (1-\xi)x & \text{if } \|\hat{x}-x\| \geq 1,
+    \end{cases}
+\end{equation}
+with $\xi$ chosen so that $x_m$ is a point on the line from $\hat x$ to $x$ with $\|x_m - x\| < 1$. What—if any—influence this point has is determined by the exponent $\lambda_0$. 
+
+Firstly, the term 
+\begin{equation}
+u := (x-\hat x)^T(\tilde x - x),
+\end{equation}
+is examined to determine whether the value of $\lambda_0$ from the previous iteration can be kept. $\tilde x$ is the potential next iterate after $x$ if $\lambda_0$ is kept the same. If $u<0$, the potential step from $x$ to $\tilde x$ points in the general direction back to $\hat x$. This means that $\lambda_0$ was not high enough, and it is iteratively increased by recalculating $\tilde x$ for the higher values of $\lambda_0$ until $u \geq 0$.
+
+If however $u \geq 0$ from the start, the two vectors are acute or orthogonal and point in the same general direction, meaning the $\lambda_0$ from the previous iteration was satisfactory. In this case, it is checked whether $\lambda_0$ can even be set to $0$ to simplify the tunneling function. The potential displacement from $x$ to the following iterate if $\lambda_0 = 0$ is calculated and defined as $\Delta x(0)$, and the previously calculated displacement assuming $\lambda_0$ stays the same is defined as $\Delta x(\lambda_0)$. With this information, $\lambda_0$ is set to $0$ if $(\Delta x(0))^T\Delta x(\lambda_0) > 0$, or in other words, if the potential displacement without the movable pole forms an acute angle with the displacement assuming $\lambda_0$ stays constant. 
+
+Technically, the paper introduces a hole at $x_m$ even if the pole there is eliminated by setting $\lambda_0$ to 0. In this case, the hole can of course be patched by temporarily removing the entire term from the denominator.
+
+The reason that $(x-\hat x)^T(\tilde x - x) < 0$ is chosen as the threshold for determining that a local minimizer was passed is not given in the paper, but it can be explained as follows:
+
+Assuming gradient descent is used to search for points with $T(x) \leq 0$, an obtuse angle between two subsequent search directions $d_1 := x - \hat x$ and $d_2 := \tilde x - x$ means that a smaller step size for $d_1$ would have produced a more optimal point $x$. 
+
+To examine the slope of $T(x)$ along search directions $d$, the one-dimensional restriction is defined as
+\[
+\phi_d(t) := T(x+td).
+\]
+
+Assuming gradient descent is used,
+\[
+\phi_{-\nabla T(\hat x)}(t) = T(\hat x - t \nabla T(\hat x)).
+\]
+
+The slope of the one-dimensional restriction is
+\[
+\phi_{-\nabla T(\hat x)}'(t) = (-\nabla T(\hat x))^T \nabla T(\hat x - t  \nabla T(\hat x)).
+\]
+
+The slope at $\hat x$ along the search direction $-\nabla T(\hat x)$ can be expressed as
+\[
+\phi_{-\nabla T(\hat x)}'(0) = -\nabla T(\hat x)^T \nabla T(\hat x) < 0.
+\]
+
+The slope at $x$ along the same search direction can be expressed as 
+\begin{align*}
+\phi_{-\nabla T(\hat x)}'(t_1) &= -\nabla T(\hat x)^T \nabla T(\hat x - t_1 \nabla T(\hat x)) \\
+&= -\nabla T(\hat x)^T \nabla T(x) \\
+&= - \left( -\frac{1}{t_1}(x-\hat x) \right) ^T \left( -\frac{1}{t_2} (\tilde x - x) \right) \\
+&= -\frac{u}{t_1t_2}.
+\end{align*}
+
+If $u < 0$, then $\phi_{\nabla T(\hat x)}'(t_1) > 0$. As the one-dimensional restriction then has a negative slope at $\hat x$ and a positive slope at $x$, it must have a local minimal point somewhere in between. 
+
+While movable poles can help prevent getting stuck in local minimal points with $T(x) > 0$, they do not guarantee it. For example, no pole would be created if each point in a sequence of iterates is the midpoint of the line segment between the previous iterate and a local minimal point. 
+
+Another drawback not mentioned by Levy and Montalvo is the risk that a local minimal point being repelled by a pole could be a valid termination point with $T(x) \leq 0$. In this case, the iterates have to move further away from that point before the pole is reset and the point can be reached again.
+
+The proof that a $\lambda_0$ that leads to an acceptable $u$ can always be found is also omitted from the paper. Once again, we assume gradient descent is used, meaning 
+\[
+u = (x - \hat x)^T (-t_2 \nabla T(x)) .
+\]
+This means that $u \geq 0$ if and only if
+\begin{equation}
+    \label{eq:ucondition}
+    (x - \hat x)^T \nabla T(x) \leq 0.
+\end{equation}
+
+Summarizing the first term of the denominator as $P(x)$, the tunneling function is given as 
+\[
+T(x) = \frac{f(x) - f^\star}{P(x) [(x-x_m)^T(x-x_m)]^{\lambda_0}},
+\]
+meaning the gradient after applying the quotient rule, the product rule, and the chain rule and subsequently substituting in $v := (x-x_m)^T(x-x_m)$ for legibility is 
+\begin{align*}
+    \nabla T(x) &= \frac{P(x) v^{\lambda_0} \nabla f(x) 
+    - (f(x) - f^\star)  
+    [v^{\lambda_0} \nabla P(x)  + 2P(x) \lambda_0v^{\lambda_0 - 1} (x-x_m) ]  }
+    {P^2(x) v^{2\lambda_0}}    \\
+    &= \frac{P(x) \nabla f(x) 
+    - (f(x) - f^\star)  [ \nabla P(x)  + 2 P(x) \lambda_0 v^{- 1} (x-x_m) ]  }
+    {P^2(x) v^{\lambda_0}}.
+\end{align*}
+
+For $\lambda_0 \to \infty$, the gradient approaches 
+\begin{equation} \label{eq:gradapprox}
+    -\frac{2\lambda_0(f(x) - f^\star)v^{-1}}{P(x)v^{\lambda_0}}(x-x_m),
+\end{equation}
+
+which is $(x-x_m)$ multiplied with a negative constant because $P(x)$, $v$, and $(f(x) - f^\star)$ are all positive. $x_m$ was defined to be on the line segment connecting $\hat x$ and $x$ in \eqref{eq:xm}, so $-(x-x_m)$ is antiparallel to $(x - \hat x)$. The condition \eqref{eq:ucondition} is thus fulfilled for sufficiently large $\lambda_0$.
+
+\subsection{Applying the algorithm}
+To find points $x$ with $T(x) \leq 0$ starting at the point returned in the previous minimization phase, the tunneling function is constructed with a pole at the starting point. A small random perturbation is added because descent methods applied in the tunneling phase can generally not start from discontinuities.
+
+While any descent method can be chosen, the authors suggest a modified Newton's method, where displacements are determined as 
+\begin{equation}\label{eq:Delta_x}
+\Delta x = - \alpha \frac{T(x)}{\|\nabla T(x) \|_2^2} \nabla T(x),
+\end{equation}
+with a step size parameter $\alpha$ determined with bisection starting at $\alpha = 1$. Each iterate is guaranteed to decrease $T(x)$ because the method is a special form of gradient descent and step sizes can be as small as necessary to have a descent step; however, this does not necessarily mean that a sequence of iterates will lead to points closer and closer to being acceptable termination points for the tunneling phase. The movable pole can cause the method to diverge by ensuring two subsequent iterates lead to an improvement on the tunneling function given a certain $x_m$ even if the second iterate would be less preferable without the movable pole, which will move away anyway after the iteration. 
+
+For instance, points $x_1, x_2, x_3$ with $T(x_1; \, x_{m,1}) > T(x_2; \, x_{m, 1})$ and $T(x_2; \, x_{m,2}) > T(x_3; \, x_{m, 2})$ could be consecutive iterates even if $f(x_1) < f(x_2) < f(x_3)$. While this can help avoid getting stuck in local minimal points of the tunneling function, it means there is no guarantee the tunneling phase will terminate with an acceptable point.
+
+To account for this, the authors recommend trying the tunneling phase from up to $2n$ random perturbations, where $n$ is the amount of dimensions in the domain of the objective function. If all should fail to find an acceptable point, the authors suggest starting a tunneling phase from another $2n$ points randomly selected from the entire domain. Only if all of these fail to find a new iterate does the entire tunneling algorithm terminate.
+
+
+
+
+\subsection{Limitations of the Tunneling Algorithm}
+
+While Levy and Montalvo report impressive results, the stochastic nature of the algorithm can lead to instable results. For example, applying the tunneling algorithm on the function 
+\begin{equation}
+    f: [-10, \,10] \to \mathbb R, \; x \mapsto f(x) := \cos(x) + \frac15x^2
+\end{equation}
+can lead to the algorithm finding only one of the two global minimal points. 
+
+The first minimization phase will lead to one of the two global minimal points being found; after that, a perturbation is applied to said global minimal point, and the tunneling function is minimized from that perturbation. Because the movable pole prevents two consecutive search directions from pointing in opposite directions, the restoration algorithm will just search farther and farther in the direction of the perturbation, meaning a perturbation in the wrong direction makes finding the second global minimum impossible.
+
+The authors account for the fact that not every perturbation will lead to success; in the paper, it is suggested to attempt $2n$ perturbations from the previous global minimal point in the tunneling phase, where $n$ is the number of dimensions of the domain of the objective function. In this case, that means two failed random perturbations are enough to cause failure.
+
+If they all fail to find a new optimal point, the paper suggests restarting the tunneling phase from another $2n$ random points. In our one-dimensional case, that can lead to another problem: local minimal points of the tunneling function causing the algorithm to stagnate despite the movable pole. This problem arises if the random starting point is to the right of the tunneling function's local minimal point around $x=x^\star - 1 = 1.1253$, where the pole around $x^\star$ ends. 
+
+Assuming the random starting point is to the right of the pole where $\nabla T(x) > 0$, the algorithm will correctly start looking for points to the left. Once the iterates reach the interval $x \in (0, \, 1.1253)$ or $x \in (2.1253, 3.1253)$ where $\nabla T(x) < 0$, a movable pole needs to be introduced to maintain the search direction. This can lead to a vicious circle: If two iterates are close to each other, the second iterate have a gradient $\nabla T(x)$ with a very low value because of its proximity to the movable pole, which is set as the previous iterate according to the algorithm. The displacement $\Delta x = - \alpha \frac{T(x)}{\| \nabla T(x) \| ^2_2} \nabla T(x)$, being divided by the squared value of the gradient, will therefore be low, causing the next iterates to also be close to each other and the algorithm to stall.
+
+This risk of failure was investigated: Out of 1000 experiments, the algorithm failed to find one of the global minimal points 44 times. The algorithm fails if both random perturbations point in the wrong direction and both random starting points for the global search are on the wrong side of the tunneling function's local minimum. The odds of this series of unfortunate events can be estimated as $P(failure) \approx 0.5^4 = 0.0625$, and this estimation would lead to an expected $1000 \, \times \, 0.0625 = 62.5 $ failures. The cause of failure in one case was confirmed by consulting the algorithm logs.
+
+% The two following plots were generated by Google Gemini
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+\begin{axis}[
+            axis lines = middle,
+            xlabel = {$x$},
+            domain = -10:10,
+            samples = 200,
+            grid = major,
+            grid style = {dashed, gray!30},
+            xmin = -11, xmax = 11,
+            ymin = 0, ymax = 15,         % Fixed Y-axis limits
+            xtick = {-10, -5, 5, 10},    % Explicitly sets X ticks like the image
+            ytick = {5, 10, 15},         % Explicitly sets Y ticks like the image
+            width = 10cm,
+            height = 7cm,
+            legend pos = north west
+        ]            % Plot the function
+            \addplot [
+                color=blue,
+                thick,
+            ] {cos(deg(x)) + (x^2)/5};
+            
+            \addlegendentry{$f(x) = \cos(x) + \frac{x^2}{5}$}
+            
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Plot of the function $f(x) = \cos(x) + \frac{x^2}{5}$}
+    \label{fig:plot}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+\begin{axis}[
+            axis lines = middle,
+            xlabel = {$x$},
+            ylabel = {$T(x)$},
+            domain = -10:10,
+            samples = 600,
+            grid = major,
+            grid style = {dashed, gray!30},
+            xmin = -11, xmax = 11,
+            ymin = 0, ymax = 15,
+            restrict y to domain = 0:1000, % <-- Raised so the cut happens off-screen
+            width = 10cm,
+            height = 7cm,
+            legend pos = north west,
+            declare function={
+                f(\x) = cos(deg(\x)) + (\x^2)/5;
+                eta(\x) = (abs(\x - 2.1253) < 0.99999) ? 1 : 
+                          ((abs(\x - 2.1253) > 1.00001) ? 0 : 
+                          (1 - (abs(\x - 2.1253) - 0.99999) / 0.00002));
+                T(\x) = f(\x) / (abs(\x - 2.1253)^(2 * eta(\x)));
+            }
+        ]            % Plot the modified function
+            \addplot [
+                color=blue,
+                thick,
+                unbounded coords=discard
+            ] {T(x)};
+            
+            \legend{$T(x)$}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Plot of the modified function $T(x)$ with a pole at the global minimal point at x=2.1253.}
+    \label{fig:modified_g}
+\end{figure}
+
+
+
+\section{Implementing Iterated Local Search ideas to improve the Tunneling Algorithm}
+
+
+
+
+\section{Conclusion}
+
+Die Arbeit sollte mit einer Zusammenfassung oder einem Fazit abschließen.
+
+\printbibliography
+
+\end{document}
