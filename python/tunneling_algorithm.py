@@ -1,8 +1,15 @@
 import numpy as np
 from scipy.optimize import minimize
+"""
+This script implements the tunneling algorithm as described in "The Tunneling ALgorithm for the 
+    Global Minimization of Functions" by Levy and Montalvo (1985).
+Modifications to their algorithm are marked with `improved` and `annealing` flags.
 
+The `TunnelingAlgorithm` class implements the algorithm for a given objective function, its gradient, and bounds.
+The `apply_algorithm` method is the entry point.
+"""
 class TunnelingAlgorithm:
-    def __init__(self, f, f_grad, bounds, verbose=False, improved=True, annealing=False):
+    def __init__(self, f, f_grad, bounds, verbose=False, improved=False, annealing=False):
         self.f = f # Objective function
         self.f_grad = f_grad # Gradient of the objective function
         self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
@@ -29,6 +36,8 @@ class TunnelingAlgorithm:
         self.improved = improved # If True, distance between xm and x_new is independent of x_hat
         self.annealing = annealing # If True, allow annealing steps during tunneling
 
+        self.temperature_0 = 1000
+
     '''
     Input: Initial point `x_0` for the tunneling algorithm, and maximum number of cycles to perform.
     Output: A tuple containing the list of minimizers `x_stars` found at the best known minimum level `f_star`.
@@ -37,7 +46,8 @@ class TunnelingAlgorithm:
     '''
     def apply_algorithm(self, x_0):
         current_x = x_0
-        for _ in range(self.max_cycles):
+        for cycle_counter in range(self.max_cycles):
+            self.k = cycle_counter+1 if self.annealing else None
             # 1. Minimization Phase
             print(f"starting minimization phase at {current_x} with f={self.f(current_x)}") if self.verbose else None
             x_star, f_val = self.minimization_phase(current_x)
@@ -99,11 +109,11 @@ class TunnelingAlgorithm:
     def tunneling_phase(self, x_star):
         # 1. Local search: Try random perturbations around the last found minimizer
         epsilons = []
-        if self.improved:
+        if self.improved and False:
             for direction in [-0.05, 0.05]:
                 for i in range(self.dim):
                     ep = np.zeros(self.dim)
-                    ep[i] = direction
+                    ep[i] = direction + np.random.uniform(-0.05, 0.05) 
                     epsilons.append(ep)
         else:
             for _ in range(self.n_random_starts):
@@ -185,7 +195,7 @@ class TunnelingAlgorithm:
                 if all(np.linalg.norm(x_hat - prev) > 1e-2 for prev in self.x_stars):
                     return x_hat
                 
-            elif self.annealing and t_val < np.random.uniform(0, 20):
+            elif self.annealing and np.exp((self.f_star-self.f(x_hat))/(self.temperature_0/self.k)) > np.random.uniform(0,1):
                 print(f"    Trying annealing step from {x_hat} with T={t_val}") if self.verbose else None
                 if self.minimization_phase(x_hat)[1] < self.f_star + self.eps1:
                     print(f"    Annealing step successful from {x_hat} with T={t_val}") if self.verbose else None

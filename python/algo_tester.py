@@ -8,7 +8,7 @@ class Algorithm_Tester:
 
         
         # Define starring points: the parameters are (lb, ub, (nr_tests, dim))
-        shubert_2d_starting_points = np.random.uniform(-10, 10, (20, 2))
+        shubert_2d_starting_points = np.random.uniform(-10, 10, (40, 2))
         shubert_3d_starting_points = np.random.uniform(-10, 10, (10, 3))
         shubert_6d_starting_points = np.random.uniform(-10, 10, (10, 6))
         six_camel_hump_starting_points = np.random.uniform(low=[-3, -2], high=[3, 2], size=(30, 2))
@@ -139,11 +139,10 @@ class Algorithm_Tester:
     def run_tests(self, algorithm, **kwargs):
         for test in self.test_list:
             start_time = time.perf_counter()
-            algo = algorithm(test['function'], test['grad'], test['bounds'], **kwargs)
-            avg_nr_minima_found, nr_failures = self.test_algorithm(algo, x0_list=test['starting_points'], global_min=test['global_min'])
+            avg_nr_minima_found, nr_failures = self.test_algorithm(algorithm, test, **kwargs)
             end_time = time.perf_counter()
             time_per_trial = (end_time - start_time) / test['nr_trials']
-            print(f"Test: {test['name']}, Avg Minima Found: {avg_nr_minima_found:.2f} out of {test['minima_count']}, Failure Rate: {nr_failures/test['nr_trials']:.2%} over {test['nr_trials']} trials, Time per Trial: {time_per_trial:.3f} seconds.")
+            print(f"Test: {test['name']}, average number of minima found when successful: {avg_nr_minima_found:.2f} out of {test['minima_count']}, failure rate: {nr_failures/test['nr_trials']:.2%} over {test['nr_trials']} trials, time per trial: {time_per_trial:.3f} seconds.")
 
         self.results_list.append({
             'function': test['name'], 
@@ -153,15 +152,17 @@ class Algorithm_Tester:
             'nr_trials': test['nr_trials']
         })
 
-    def test_algorithm(self, algorithm, x0_list, global_min):
+    def test_algorithm(self, algorithm, test, **kwargs):
         np.random.seed(42)
         nr_failures = 0
         found_minima_count = []
-        for x0 in x0_list:
-            minima, f_min = algorithm.apply_algorithm(x0)
-            if abs(f_min - global_min) < 1e-5:
+        for x0 in test['starting_points']:
+            algo = algorithm(f=test['function'], f_grad=test['grad'], bounds=test['bounds'], **kwargs)
+            minima, f_min = algo.apply_algorithm(x0)
+            if abs(f_min - test['global_min']) < 1e-5:
                 found_minima_count.append(len(minima))
             else:
                 nr_failures += 1
-        return np.mean(found_minima_count), nr_failures
+        mean_found_count = np.mean(found_minima_count) if len(found_minima_count) > 0 else 0
+        return mean_found_count, nr_failures
             
