@@ -1,3 +1,9 @@
+"""
+This script can be deleted as it was incorporated into algorithms.py. 
+I am keeping it in one commit just to be sure.
+"""
+
+
 import numpy as np
 from scipy.optimize import minimize
 
@@ -98,7 +104,7 @@ class AnnealingTunnelingAlgorithm:
     def tunneling_phase(self, x_star):
         # 1. Local search: Try random perturbations around the last found minimizer
         epsilons = []
-        if self.improved:
+        if self.improved and False: #here 888
             for direction in [-0.05, 0.05]:
                 for i in range(self.dim):
                     ep = np.zeros(self.dim)
@@ -183,8 +189,11 @@ class AnnealingTunnelingAlgorithm:
                 # Must be far from ALL found minima to be a valid new start
                 if all(np.linalg.norm(x_hat - prev) > 1e-2 for prev in self.x_stars):
                     return x_hat
-            elif all(np.linalg.norm(x_hat - prev) > 0.5 for prev in self.x_stars) and self.f(x_hat) <= 10:
+                
+            elif t_val < np.random.uniform(0, 20): # here666
+                print(f"    Trying annealing step from {x_hat} with T={t_val}") if self.verbose else None
                 if self.minimization_phase(x_hat)[1] < self.f_star + self.eps1:
+                    print(f"    Annealing step successful from {x_hat} with T={t_val}") if self.verbose else None
                     return x_hat
 
             # 2. Calculate Displacement (Section 2.3.4)

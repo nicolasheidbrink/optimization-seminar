@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 class TunnelingAlgorithm:
-    def __init__(self, f, f_grad, bounds, verbose=False, improved=True):
+    def __init__(self, f, f_grad, bounds, verbose=False, improved=True, annealing=False):
         self.f = f # Objective function
         self.f_grad = f_grad # Gradient of the objective function
         self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
@@ -21,12 +21,13 @@ class TunnelingAlgorithm:
         self.n_random_starts = 2 * self.dim # Number of random starts when local perturbations fail in the tunneling phase
         self.max_cycles = 1000 # Maximum number of cycles of minimization and tunneling phases to perform
 
-        self.verbose = verbose # If True, print detailed logs during execution
         self.minimization_phase_counter = 0 # Counter to track how many times the minimization phase is called
         self.success = 0 # Counter for successful steps in the restoration algorithm
         self.failure = 0 # Counter for failed steps in the restoration algorithm
 
+        self.verbose = verbose # If True, print detailed logs during execution
         self.improved = improved # If True, distance between xm and x_new is independent of x_hat
+        self.annealing = annealing # If True, allow annealing steps during tunneling
 
     '''
     Input: Initial point `x_0` for the tunneling algorithm, and maximum number of cycles to perform.
@@ -183,6 +184,13 @@ class TunnelingAlgorithm:
                 # Must be far from ALL found minima to be a valid new start
                 if all(np.linalg.norm(x_hat - prev) > 1e-2 for prev in self.x_stars):
                     return x_hat
+                
+            elif self.annealing and t_val < np.random.uniform(0, 20):
+                print(f"    Trying annealing step from {x_hat} with T={t_val}") if self.verbose else None
+                if self.minimization_phase(x_hat)[1] < self.f_star + self.eps1:
+                    print(f"    Annealing step successful from {x_hat} with T={t_val}") if self.verbose else None
+                    return x_hat
+
 
             # 2. Calculate Displacement (Section 2.3.4)
             print(f"        Calculating displacement to find next restoration iterate") if self.verbose else None
@@ -380,33 +388,4 @@ class TunnelingAlgorithm:
             print(f"Global search: restoration algorithm returned {res} for random point {x_rand}") if self.verbose else None
             if res is not None:
                 return res
-                
         return None
-
-class MRSAlgorithm():
-    def __init__(self, f, f_grad, bounds, eps1=1e-9):
-        self.f = f # Objective function
-        self.f_grad = f_grad # Gradient of the objective function
-        self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
-        self.dim = len(bounds) # Dimensionality of the problem
-        self.x_stars = [] # Stores all minimizers at the current f_star level
-        self.f_star = np.inf # Best known minimum value of f
-        self.eps1 = eps1 # Threshold for considering a new minimum better than f_star
-
-        self.minimization_phase_counter = 0 # Counter to track how many times the minimization phase is called
-
-    def apply_algorithm(self, x_0):
-        max_cycles = x_0.shape[0] * 1000 # 1000 cycles per dimension
-        for _ in range(max_cycles):
-            x_0 = np.random.uniform([b[0] for b in self.bounds], [b[1] for b in self.bounds])
-            res = minimize(self.f, x_0, jac=self.f_grad, bounds=self.bounds, method='L-BFGS-B')
-            self.minimization_phase_counter += 1
-            if res.fun < self.f_star - self.eps1:
-                self.f_star = res.fun
-                self.x_stars = [res.x]
-            elif abs(res.fun - self.f_star) <= self.eps1:
-                if not any(np.linalg.norm(res.x - prev) < 1e-3 for prev in self.x_stars):
-                    self.x_stars.append(res.x)
-        return self.x_stars, self.f_star
-
-            
