@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 
-class TunnelingAlgorithm:
+class AnnealingTunnelingAlgorithm:
     def __init__(self, f, f_grad, bounds, verbose=False, improved=True):
         self.f = f # Objective function
         self.f_grad = f_grad # Gradient of the objective function
@@ -182,6 +182,9 @@ class TunnelingAlgorithm:
             if t_val <= self.eps3:
                 # Must be far from ALL found minima to be a valid new start
                 if all(np.linalg.norm(x_hat - prev) > 1e-2 for prev in self.x_stars):
+                    return x_hat
+            elif all(np.linalg.norm(x_hat - prev) > 0.5 for prev in self.x_stars) and self.f(x_hat) <= 10:
+                if self.minimization_phase(x_hat)[1] < self.f_star + self.eps1:
                     return x_hat
 
             # 2. Calculate Displacement (Section 2.3.4)
@@ -382,31 +385,3 @@ class TunnelingAlgorithm:
                 return res
                 
         return None
-
-class MRSAlgorithm():
-    def __init__(self, f, f_grad, bounds, eps1=1e-9):
-        self.f = f # Objective function
-        self.f_grad = f_grad # Gradient of the objective function
-        self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
-        self.dim = len(bounds) # Dimensionality of the problem
-        self.x_stars = [] # Stores all minimizers at the current f_star level
-        self.f_star = np.inf # Best known minimum value of f
-        self.eps1 = eps1 # Threshold for considering a new minimum better than f_star
-
-        self.minimization_phase_counter = 0 # Counter to track how many times the minimization phase is called
-
-    def apply_algorithm(self, x_0):
-        max_cycles = x_0.shape[0] * 1000 # 1000 cycles per dimension
-        for _ in range(max_cycles):
-            x_0 = np.random.uniform([b[0] for b in self.bounds], [b[1] for b in self.bounds])
-            res = minimize(self.f, x_0, jac=self.f_grad, bounds=self.bounds, method='L-BFGS-B')
-            self.minimization_phase_counter += 1
-            if res.fun < self.f_star - self.eps1:
-                self.f_star = res.fun
-                self.x_stars = [res.x]
-            elif abs(res.fun - self.f_star) <= self.eps1:
-                if not any(np.linalg.norm(res.x - prev) < 1e-3 for prev in self.x_stars):
-                    self.x_stars.append(res.x)
-        return self.x_stars, self.f_star
-
-            
