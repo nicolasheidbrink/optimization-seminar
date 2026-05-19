@@ -10,6 +10,8 @@ The `apply_algorithm` method is the entry point.
 """
 class TunnelingAlgorithm:
     def __init__(self, f, f_grad, bounds, verbose=False, improved=False, annealing=False):
+        np.random.seed(42)
+        
         self.f = f # Objective function
         self.f_grad = f_grad # Gradient of the objective function
         self.bounds = bounds # Bounds for the optimization variables; list of (lower, upper) tuples
@@ -109,8 +111,8 @@ class TunnelingAlgorithm:
     def tunneling_phase(self, x_star):
         # 1. Local search: Try random perturbations around the last found minimizer
         epsilons = []
-        if self.improved and False:
-            for direction in [-0.05, 0.05]:
+        if self.improved:
+            for direction in [-0.1, 0.1]:
                 for i in range(self.dim):
                     ep = np.zeros(self.dim)
                     ep[i] = direction + np.random.uniform(-0.05, 0.05) 
@@ -179,7 +181,6 @@ class TunnelingAlgorithm:
 
     This function implements the restoration algorithm as described in section 2.3.4 of the paper, which is used 
         during the tunneling phase to find a new point that satisfies T(x) < eps3.
-    
     '''
     def run_restoration(self, x_start):
         x_hat = self.apply_bounds(x_start) # The point that we move away from
@@ -221,7 +222,7 @@ class TunnelingAlgorithm:
                 alpha /= 2.0
             
             if not success:
-                print(f"    Restoration algorithm failed to find a better point from {x_hat} with T={t_val}") if self.verbose else None
+                print(f"    Bisection failed to find a better point from {x_hat} with T={t_val}") if self.verbose else None
                 self.failure += 1
                 break
 
@@ -321,6 +322,8 @@ class TunnelingAlgorithm:
         stored as `self.x_stars`, the corresponding strengths stored in `self.lambda_list`, and the movable pole with its strength.
     
     The function T(x) is defined as equation (A.0) in the paper, and the gradient is derived using the product and chain rules.
+    
+    This method was rewritten by Google Gemini to speed up the code.
     '''
     def get_t_and_grad(self, x, x_m, lambda_0):
         f_val = self.f(x)
