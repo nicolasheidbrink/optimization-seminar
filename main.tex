@@ -23,19 +23,6 @@ outer = 3.75cm
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18} % Good practice to ensure consistent rendering
-% Define the functions using pgfmath syntax
-\pgfplotsset{
-    declare function={
-        f(\x) = cos(deg(\x)) + (\x^2)/5;
-        eta(\x) = (abs(\x - 2.1253) < 0.99999) ? 1 : 
-                  ((abs(\x - 2.1253) > 1.00001) ? 0 : 
-                  (1 - (abs(\x - 2.1253) - 0.99999) / 0.00002));
-        g(\x) = f(\x) / (abs(\x - 2.1253)^(2 * eta(\x)));
-    }
-}
-
 \usepackage{eurosym}
 \usepackage{amssymb,amsmath}
 \usepackage[linesnumbered,ruled,vlined]{algorithm2e}
@@ -163,19 +150,17 @@ Zum Einstieg in \LaTeX\ empfehlen wir die Seite
 Den Quelltext \texttt{vorlage.tex} dieses Dokuments kann man zum Beispiel mit \texttt{pdflatex} kompilieren.
 
 
-\section{Explanation of Tunneling Algorithm}
+\section{Explanation of tunneling algorithm}
 
-The tunneling algorithm as presented in Levy and Montalvo's paper works by alternating between two phases: In the minimization phase, a minimization algorithm is run on the current iterate. The result is a local minimal point $x_i^\star$ with $f(x_i^\star) =:$ $f^\star$.
+The tunneling algorithm as presented in Levy and Montalvo's paper \cite{levy_tunneling_1985} works by alternating between two phases: In the minimization phase, a minimization algorithm is run on the current iterate. The result is a local minimal point $x_i^\star$ with $f(x_i^\star) =:$ $f^\star$.
 
-In the tunneling phase, the goal is to find a new point in the feasible set of the problem with an objective function value equal to or less than that of the previous local minimal point. An auxiliary tunneling function is defined that takes positive values for points $x_j$ with $f(x_j) > f^\star$ and non-positive values for previously undiscovered points $x_j$ with $f(x_j) \leq f^\star$. The tunneling phase implements a descent method on the tunneling function and terminates with the first point found with a non-positive tunneling function value.
-
+In the tunneling phase, the goal is to find a new point in the feasible set of the problem with an objective function value equal to or less than that of the previous local minimal point. An auxiliary tunneling function is defined that takes positive values for points $x$ with $f(x) > f^\star$ and non-positive values for previously undiscovered points $x$ with $f(x) \leq f^\star$. The tunneling phase implements a descent method on the tunneling function and terminates with the first point found with a non-positive tunneling function value.
 
 
 
 \subsection{The auxiliary function}
-\subsubsection{The }
-Levy and Montalvo define their tunneling function as
-\begin{equation}
+Levy and Montalvo define their tunneling function as \cite[Eq. A.4]{levy_tunneling_1985}
+\begin{equation} \label{eq:t}
     T(x) = \frac{
         f(x) - f^\star}{ 
         \{ \prod_{i = 1}^l [(x - x^\star_i)^T(x - x^\star_i)]^{\eta_i} \} 
@@ -200,7 +185,7 @@ The Taylor expansion of the numerator around $x_i^\star$ is
 f(x) \approx f(x_i^\star) + \nabla f(x_i^\star)^T(x-x_i^\star) + \frac{1}{2}(x-x_i^\star)^T D^2f(x_i^\star)(x-x_i^\star) + ...
 \]
 
-If $x_i^ \star$ is a non-degenerate minimizer of $f(x)$ that satisfies the First Order Necessary Optimality Condition $\nabla f(x_i^\star) = 0$, e.g. a local minimal point in the interior of the feasible set, the Taylor expansion at that point can be rearranged to
+If $x_i^ \star$ is a non-degenerate minimizer of $f(x)$ that satisfies the First Order Necessary Optimality Condition $\nabla f(x_i^\star) = 0$, e.g. a local minimal point in the interior of the feasible set, the Taylor expansion at that point \cite[Th. 2.1.30]{stein_basic_2024} can be rearranged to 
 \begin{align*}
 f(x) - f^\star &=  \frac{1}{2} (x-x_i^\star)^T D^2f(x_i^\star)(x-x_i^\star) + \dots  \\ 
 &\approx O(\|x-x_i^\star\|^2).
@@ -210,36 +195,36 @@ As $x \to x_i^\star$, $[(x-x_i^\star)^T(x-x_i^\star)]^{\eta_i}$ approaches $0$ a
 
 \[
 T(x) \approx \frac{O(\|x-x_i^\star\|)^2}{[(x-x_i^\star)^T(x-x_i^\star)]^{\eta_i}}
-= \frac{O(\|x-x_i^\star\|)^2}{\|x-x_i^\star\|^{2\eta_i}}
+= \frac{O(\|x-x_i^\star\|)^2}{\|x-x_i^\star\|^{2\eta_i}}.
 \]
 
 If $2\eta_i > 2$, then $\lim_{x \to x_i^\star} T(x) = \infty $ and there is a pole at $x_i^\star$.
-
-Even if $x_i^\star$ is a degenerate minimizer, $f(x) - f^\star$ can similarly be asymptotically approximated with $O(\|x-x_i^\star\|^p)$, with $p$ being the order of its first non-zero derivative. In that case, $\eta_i$ must fulfill $2\eta_i > p$ to guarantee a pole.
 
 If however $x_i^\star$ is a minimizer of $f(x)$ on the boundary of the feasible set, it no longer necessarily fulfills the First Order Necessary Optimality Condition. If the First Order Necessary Optimality Condition is not fulfilled, the Taylor expansion at that point can be rearranged to
 
 \begin{align*}
 f(x) - f^\star &= \nabla f(x_i^\star)^T(x-x_i^\star) + \frac{1}{2} (x-x_i^\star)^T H(x_i^\star)(x-x_i^\star) + ... \\ 
-&\approx O(\|x-x_i^\star\|)
+&\approx O(\|x-x_i^\star\|).
 \end{align*}
 
 
 Analogously to the first case, the convergence of $T(x)$ around $x_i^\star$ can be examined with the approximation
 
 \[
-T(x) \approx \frac{O(\|x-x_i^\star\|)}{\|x-x_i^\star\|^{2\eta_i}}
+T(x) \approx \frac{O(\|x-x_i^\star\|)}{\|x-x_i^\star\|^{2\eta_i}}.
 \]
 
 For $\|x-x_i^\star\| \to 0$, the limit of $T(x)$ is infinite if $2\eta_i > 1$.
+
+In order to ensure that the first term of the denominator does not flatten the tunneling function by having all function values far from $x_i^\star$ be divided by a large denominator, the exponent $\eta_i$ is set to $0$ for points $x$ with $\| x-x_i^\star \|_2 > 1$. The authors add a small ramp function to linearly transition the value of $\eta_i$ from whatever value was previously calculated to $0$ over points $x$ with $\| x-x_i^\star\|_2 \in (1-\epsilon, 1+\epsilon)$ \cite[Eq. A.5]{levy_tunneling_1985}, where $\epsilon$ is a small parameter set as $10^{-5}$ in their implementation. They do not mention that the ramp function is not necessary to avoid discontinuities in $T(x)$; the jump from one exponent to the other would occur at points where the base, and thus the entire exponentiation, is $1$. 
 
 
 \subsubsection{The second term of the denominator}
 
 
-The second term, $[(x-x_m)^T(x-x_m)]^{\lambda_0}$, introduces poles around irrelevant local minima of the tunneling function. This helps prevent whatever algorithm is used to search for points $x$ with $T(x) \leq 0$ from getting stuck. 
+The second term of the denominator of \eqref{eq:t}, $[(x-x_m)^T(x-x_m)]^{\lambda_0}$, introduces poles around irrelevant local minima of the tunneling function. This helps prevent whatever algorithm is used to search for points $x$ with $T(x) \leq 0$ from getting stuck. 
 
-After each descent step on $T(x)$ from $\hat x$ to $x$, the location of the movable pole $x_m$ is set as 
+After each descent step on $T(x)$ from $\hat x$ to $x$, the location of the movable pole $x_m$ is set in \cite[Eq. A.7]{levy_tunneling_1985} as 
 \begin{equation}\label{eq:xm}
     x_m:=\begin{cases}
         \hat{x} & \text{if } \|\hat{x}-x\| < 1, \\ 
@@ -248,7 +233,7 @@ After each descent step on $T(x)$ from $\hat x$ to $x$, the location of the mova
 \end{equation}
 with $\xi$ chosen so that $x_m$ is a point on the line from $\hat x$ to $x$ with $\|x_m - x\| < 1$. What—if any—influence this point has is determined by the exponent $\lambda_0$. 
 
-Firstly, the term 
+Firstly, the term \cite[Eq. A.8]{levy_tunneling_1985}
 \begin{equation}
 u := (x-\hat x)^T(\tilde x - x),
 \end{equation}
@@ -256,9 +241,7 @@ is examined to determine whether the value of $\lambda_0$ from the previous iter
 
 If however $u \geq 0$ from the start, the two vectors are acute or orthogonal and point in the same general direction, meaning the $\lambda_0$ from the previous iteration was satisfactory. In this case, it is checked whether $\lambda_0$ can even be set to $0$ to simplify the tunneling function. The potential displacement from $x$ to the following iterate if $\lambda_0 = 0$ is calculated and defined as $\Delta x(0)$, and the previously calculated displacement assuming $\lambda_0$ stays the same is defined as $\Delta x(\lambda_0)$. With this information, $\lambda_0$ is set to $0$ if $(\Delta x(0))^T\Delta x(\lambda_0) > 0$, or in other words, if the potential displacement without the movable pole forms an acute angle with the displacement assuming $\lambda_0$ stays constant. 
 
-Technically, the paper introduces a hole at $x_m$ even if the pole there is eliminated by setting $\lambda_0$ to 0. In this case, the hole can of course be patched by temporarily removing the entire term from the denominator.
-
-The reason that $(x-\hat x)^T(\tilde x - x) < 0$ is chosen as the threshold for determining that a local minimizer was passed is not given in the paper, but it can be explained as follows:
+The reason that $(x-\hat x)^T(\tilde x - x) < 0$ is chosen as the threshold for determining that a local minimizer was passed is not given in the paper, but it can be rationalized as follows:
 
 Assuming gradient descent is used to search for points with $T(x) \leq 0$, an obtuse angle between two subsequent search directions $d_1 := x - \hat x$ and $d_2 := \tilde x - x$ means that a smaller step size for $d_1$ would have produced a more optimal point $x$. 
 
@@ -292,9 +275,9 @@ The slope at $x$ along the same search direction can be expressed as
 
 If $u < 0$, then $\phi_{\nabla T(\hat x)}'(t_1) > 0$. As the one-dimensional restriction then has a negative slope at $\hat x$ and a positive slope at $x$, it must have a local minimal point somewhere in between. 
 
-While movable poles can help prevent getting stuck in local minimal points with $T(x) > 0$, they do not guarantee it. For example, no pole would be created if each point in a sequence of iterates is the midpoint of the line segment between the previous iterate and a local minimal point. 
+While movable poles can help prevent getting stuck in local minimal points with $T(x) > 0$, it can be observed that they do not guarantee it. For example, no pole would be created if each point in a sequence of iterates is the midpoint of the line segment between the previous iterate and a local minimal point. 
 
-Another drawback not mentioned by Levy and Montalvo is the risk that a local minimal point being repelled by a pole could be a valid termination point with $T(x) \leq 0$. In this case, the iterates have to move further away from that point before the pole is reset and the point can be reached again.
+Another drawback not mentioned by Levy and Montalvo is the risk that a local minimal point being repelled by a pole could be a valid termination point with $T(x) \leq 0$. This can occurs for example when the descent method used on the tunneling function overshoots a valid termination point and is prevented from directly taking a step back. In this case, the iterates have to move further away from that point before the pole is reset and the point can be reached again.
 
 The proof that a $\lambda_0$ that leads to an acceptable $u$ can always be found is also omitted from the paper. Once again, we assume gradient descent is used, meaning 
 \[
@@ -329,119 +312,83 @@ For $\lambda_0 \to \infty$, the gradient approaches
 which is $(x-x_m)$ multiplied with a negative constant because $P(x)$, $v$, and $(f(x) - f^\star)$ are all positive. $x_m$ was defined to be on the line segment connecting $\hat x$ and $x$ in \eqref{eq:xm}, so $-(x-x_m)$ is antiparallel to $(x - \hat x)$. The condition \eqref{eq:ucondition} is thus fulfilled for sufficiently large $\lambda_0$.
 
 \subsection{Applying the algorithm}
-To find points $x$ with $T(x) \leq 0$ starting at the point returned in the previous minimization phase, the tunneling function is constructed with a pole at the starting point. A small random perturbation is added because descent methods applied in the tunneling phase can generally not start from discontinuities.
+To find points $x$ with $T(x) \leq 0$ starting at the point returned in the previous minimization phase, the tunneling function is constructed with a pole at the starting point \cite[26--27]{levy_tunneling_1985}. A small random perturbation is added because descent methods applied in the tunneling phase can generally not start from discontinuities.
 
-While any descent method can be chosen, the authors suggest a modified Newton's method, where displacements are determined as 
+While any descent method can be chosen, the authors suggest a modified Newton's method \cite[28]{levy_tunneling_1985}, where displacements are determined as \cite[\S 2.3.4]{levy_tunneling_1985}
 \begin{equation}\label{eq:Delta_x}
 \Delta x = - \alpha \frac{T(x)}{\|\nabla T(x) \|_2^2} \nabla T(x),
 \end{equation}
-with a step size parameter $\alpha$ determined with bisection starting at $\alpha = 1$. Each iterate is guaranteed to decrease $T(x)$ because the method is a special form of gradient descent and step sizes can be as small as necessary to have a descent step; however, this does not necessarily mean that a sequence of iterates will lead to points closer and closer to being acceptable termination points for the tunneling phase. The movable pole can cause the method to diverge by ensuring two subsequent iterates lead to an improvement on the tunneling function given a certain $x_m$ even if the second iterate would be less preferable without the movable pole, which will move away anyway after the iteration. 
+with a step size parameter $\alpha$ determined with bisection starting at $\alpha = 1$. 
 
-For instance, points $x_1, x_2, x_3$ with $T(x_1; \, x_{m,1}) > T(x_2; \, x_{m, 1})$ and $T(x_2; \, x_{m,2}) > T(x_3; \, x_{m, 2})$ could be consecutive iterates even if $f(x_1) < f(x_2) < f(x_3)$. While this can help avoid getting stuck in local minimal points of the tunneling function, it means there is no guarantee the tunneling phase will terminate with an acceptable point.
+We observe that each iterate is guaranteed to decrease $T(x)$ because the method is a special form of gradient descent and step sizes can be as small as necessary to have a descent step; however, this does not necessarily mean that a sequence of iterates will lead to points closer and closer to being acceptable termination points for the tunneling phase. The movable pole can cause the method to diverge by ensuring two subsequent iterates lead to an improvement on the tunneling function given a certain $x_m$ even if the second iterate would be less preferable without the movable pole. For instance, points $x_1, x_2, x_3$ with $T(x_1; \, x_{m,1}) > T(x_2; \, x_{m, 1})$ and $T(x_2; \, x_{m,2}) > T(x_3; \, x_{m, 2})$ could be consecutive iterates even if $f(x_1) < f(x_2) < f(x_3)$. While this can help avoid getting stuck in local minimal points of the tunneling function, it means there is no guarantee the tunneling phase will terminate with an acceptable point.
 
-To account for this, the authors recommend trying the tunneling phase from up to $2n$ random perturbations, where $n$ is the amount of dimensions in the domain of the objective function. If all should fail to find an acceptable point, the authors suggest starting a tunneling phase from another $2n$ points randomly selected from the entire domain. Only if all of these fail to find a new iterate does the entire tunneling algorithm terminate.
-
-
+Accounting for this, the authors recommend starting the tunneling phase from up to $2n$ random perturbations, where $n$ is the amount of dimensions in the domain of the objective function. If all should fail to find an acceptable point, the authors suggest starting a tunneling phase from another $2n$ points randomly selected from the entire domain. Only if all of these fail to find a new iterate does the entire tunneling algorithm terminate.
 
 
-\subsection{Limitations of the Tunneling Algorithm}
 
-While Levy and Montalvo report impressive results, the stochastic nature of the algorithm can lead to instable results. For example, applying the tunneling algorithm on the function 
+
+\section{Limitations of the tunneling algorithm}
+
+While Levy and Montalvo report impressive results \cite[\S 5]{levy_tunneling_1985}, they do not elaborate on issues with the tunneling algorithm can in certain cases lead it to fail to find global minima even for simple functions. 
+
+For one, only up to $2n$ different random perturbations being applied to start off the modified Newton's method means certain search directions can be neglected if the perturbations happen to point in similar directions. This can be fixed by increasing the number of random perturbations, or by removing the randomness and ensuring the perturbations point in different directions. Increasing the number of random perturbations means the algorithm will take longer to terminate because it becomes less likely none of the perturbations will result in a new optimal point. 
+
+Another problem arises when applying the modified Newton's method to tunneling functions with a movable pole. To illustrate this issue, we examine the case of a one-dimensional function $f(x)$ being optimized with the tunneling algorithm. If the tunneling phase has reached an area not affected by poles around previously found minimal points and a movable pole is necessary to maintain the search direction, the tunneling function will be given as 
 \begin{equation}
-    f: [-10, \,10] \to \mathbb R, \; x \mapsto f(x) := \cos(x) + \frac15x^2
+T(x) = \frac{f(x) - f^\star}{(x-x_m)^{2 \lambda_0}}.
 \end{equation}
-can lead to the algorithm finding only one of the two global minimal points. 
+Its derivative in this one-dimensional example is 
+\begin{equation}
+T'(x) = \frac{f'(x) (x-x_m)^{2\lambda_0} - 
+        (f(x)-f^\star ) 2\lambda (x-x_m)^{2 \lambda_0-1}}
+    {(x-x_m)^{2\lambda_0 + 1}}
+\end{equation}  
+Thus, the displacement according to \eqref{eq:Delta_x} is 
+\begin{equation} \label{eq:Dx_1d}
+\Delta x = -\alpha \frac{f(x)-f^\star}{f'(x) (x-x_m) -2(f(x)-f^\star)} (x-x_m).
+\end{equation}
 
-The first minimization phase will lead to one of the two global minimal points being found; after that, a perturbation is applied to said global minimal point, and the tunneling function is minimized from that perturbation. Because the movable pole prevents two consecutive search directions from pointing in opposite directions, the restoration algorithm will just search farther and farther in the direction of the perturbation, meaning a perturbation in the wrong direction makes finding the second global minimum impossible.
+If $f(x)-f^\star >> f'(x) (x-x_m)$, which is the case if the current iterate is far from being optimal, if the current iterate is close to the movable pole, or the slope of the objective function is small, the term $f'(x) (x-x_m)$ does not have much of an impact on the fraction in \eqref{eq:Dx_1d}, which can then be approximated as 
+\begin{equation} \label{eq:Delta_x_approx}
+\Delta x \approx \frac12 \alpha (x-x_m).
+\end{equation}
 
-The authors account for the fact that not every perturbation will lead to success; in the paper, it is suggested to attempt $2n$ perturbations from the previous global minimal point in the tunneling phase, where $n$ is the number of dimensions of the domain of the objective function. In this case, that means two failed random perturbations are enough to cause failure.
+If the step size $\alpha$ is set to $1$ and potentially even decreased with bisection, as suggested in \cite[\S 2.3.4]{levy_tunneling_1985}, the distance from a first iterate to a second iterate will be about half the distance between the movable pole and the first iterate. As the next movable pole is then set to said first iterate, the distance between the second and third iterate will be about half the distance between the first and the second. This pattern makes the steps quickly become arbitrarily small and stalls the algorithm. The problem also seems to arise for functions $f(x)$ with multidimensional domains, perhaps because they behave similarly to their one-dimensional restrictions along their gradients when applying gradient descent algorithms. The modified Newton's method stalling because displacements were approximately halved was observed in experiments with two- and three-dimensional functions. 
 
-If they all fail to find a new optimal point, the paper suggests restarting the tunneling phase from another $2n$ random points. In our one-dimensional case, that can lead to another problem: local minimal points of the tunneling function causing the algorithm to stagnate despite the movable pole. This problem arises if the random starting point is to the right of the tunneling function's local minimal point around $x=x^\star - 1 = 1.1253$, where the pole around $x^\star$ ends. 
+To solve the problem of vanishing step sizes, several possible solutions come to mind. Increasing the pre-bisection value of $\alpha$ to $2$ would stop the displacement between iterates approximated in \eqref{eq:Delta_x_approx} from decreasing with every iteration. However, decreases in the displacement of one iterate, like those due to bisection would still affect subsequent iterates. Thus, one bisection would cause a lasting slowdown.
 
-Assuming the random starting point is to the right of the pole where $\nabla T(x) > 0$, the algorithm will correctly start looking for points to the left. Once the iterates reach the interval $x \in (0, \, 1.1253)$ or $x \in (2.1253, 3.1253)$ where $\nabla T(x) < 0$, a movable pole needs to be introduced to maintain the search direction. This can lead to a vicious circle: If two iterates are close to each other, the second iterate have a gradient $\nabla T(x)$ with a very low value because of its proximity to the movable pole, which is set as the previous iterate according to the algorithm. The displacement $\Delta x = - \alpha \frac{T(x)}{\| \nabla T(x) \| ^2_2} \nabla T(x)$, being divided by the squared value of the gradient, will therefore be low, causing the next iterates to also be close to each other and the algorithm to stall.
+An alternative approach that experimentally shows preferable results is fixing the movable pole so that $\| x-x_m\|_2$ is constant, while keeping it on the line that connects $x$ to the previous iterate. This disrupts the validity of approximating \eqref{eq:Dx_1d} with \eqref{eq:Delta_x_approx}. Setting $\| x-x_m\|_2$ to be close to but less than $1$ ensures that the approximation is invalid and minimizes nonconformity to Levy and Montalvo's implementation, which asserts that the movable pole must be in the interior of a unit ball around $x$ \cite[27]{levy_tunneling_1985}.
 
-This risk of failure was investigated: Out of 1000 experiments, the algorithm failed to find one of the global minimal points 44 times. The algorithm fails if both random perturbations point in the wrong direction and both random starting points for the global search are on the wrong side of the tunneling function's local minimum. The odds of this series of unfortunate events can be estimated as $P(failure) \approx 0.5^4 = 0.0625$, and this estimation would lead to an expected $1000 \, \times \, 0.0625 = 62.5 $ failures. The cause of failure in one case was confirmed by consulting the algorithm logs.
-
-% The two following plots were generated by Google Gemini
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}
-\begin{axis}[
-            axis lines = middle,
-            xlabel = {$x$},
-            domain = -10:10,
-            samples = 200,
-            grid = major,
-            grid style = {dashed, gray!30},
-            xmin = -11, xmax = 11,
-            ymin = 0, ymax = 15,         % Fixed Y-axis limits
-            xtick = {-10, -5, 5, 10},    % Explicitly sets X ticks like the image
-            ytick = {5, 10, 15},         % Explicitly sets Y ticks like the image
-            width = 10cm,
-            height = 7cm,
-            legend pos = north west
-        ]            % Plot the function
-            \addplot [
-                color=blue,
-                thick,
-            ] {cos(deg(x)) + (x^2)/5};
-            
-            \addlegendentry{$f(x) = \cos(x) + \frac{x^2}{5}$}
-            
-        \end{axis}
-    \end{tikzpicture}
-    \caption{Plot of the function $f(x) = \cos(x) + \frac{x^2}{5}$}
-    \label{fig:plot}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \begin{tikzpicture}
-\begin{axis}[
-            axis lines = middle,
-            xlabel = {$x$},
-            ylabel = {$T(x)$},
-            domain = -10:10,
-            samples = 600,
-            grid = major,
-            grid style = {dashed, gray!30},
-            xmin = -11, xmax = 11,
-            ymin = 0, ymax = 15,
-            restrict y to domain = 0:1000, % <-- Raised so the cut happens off-screen
-            width = 10cm,
-            height = 7cm,
-            legend pos = north west,
-            declare function={
-                f(\x) = cos(deg(\x)) + (\x^2)/5;
-                eta(\x) = (abs(\x - 2.1253) < 0.99999) ? 1 : 
-                          ((abs(\x - 2.1253) > 1.00001) ? 0 : 
-                          (1 - (abs(\x - 2.1253) - 0.99999) / 0.00002));
-                T(\x) = f(\x) / (abs(\x - 2.1253)^(2 * eta(\x)));
-            }
-        ]            % Plot the modified function
-            \addplot [
-                color=blue,
-                thick,
-                unbounded coords=discard
-            ] {T(x)};
-            
-            \legend{$T(x)$}
-        \end{axis}
-    \end{tikzpicture}
-    \caption{Plot of the modified function $T(x)$ with a pole at the global minimal point at x=2.1253.}
-    \label{fig:modified_g}
-\end{figure}
+The non-random perturbations and fixed distances from $x_m$ were implemented and, together with the original version of the tunneling function, tested against a variety of objective functions. The results revealed far better performance in finding global minimal points. 
 
 
+\section{Comparison to iterated local search}
+Iterated local search methods as presented in \cite{lourenco_iterated_2003} are optimization algorithms that loop between applying a local search method to an objective function and then find another point from which to start another iteration of local search. The method with which starting points for local search are determined is left open; Iterated Local Search itself is a metaheuristic.
 
-\section{Implementing Iterated Local Search ideas to improve the Tunneling Algorithm}
+Levy and Montalvo's tunneling algorithm can be identified as such an Iterated Local Search method, where the method to choose starting points for local search in the minimization phase is the tunneling phase. It is therefore logical to consider applying techniques for improving iterated local search methods presented in \cite{lourenco_iterated_2003} to the tunneling algorithm to see if there is still more room for improvement.
+
+\subsection{Simulated annealing}
+One technique they recommend is simulated annealing: Instead of searching only for points as good as or better than the previously found optimal point to start a minimization phase from, inferior points are used as the starting point of minimization phase with a probability that depends positively on how close they are to being optimal and a so-called temperature that decreases over time \cite[\S 5.3.3]{lourenco_iterated_2003}.
+
+In the tunneling algorithm, implementing simulated annealing means adding the possibility of terminating tunneling phases with points that do not satisfy $T(x) \leq 0$. This effectively means switching from a descent method on $T(x)$ to a descent method on $f(x)$ before it is guaranteed that the descent method on $f(x)$ will find a new optimal point. This allows more efficient descent methods implemented on the simpler $f(x)$ to take over quicker. By accepting more points during the tunneling phase, the risk of the entire algorithm terminating prematurely after a tunneling phase fails to find a new acceptable point in $2n$ attempts at perturbation and $2n$ attempts at a global search is also decreased. The effect is therefore similar to increasing the parameter that determines how many perturbations are attempted.
+
+One method to set the probability of accepting a suboptimal starting point is Fast Simulated Annealing \cite{szu_fast_1987}. In Fast Simulated Annealing, the probability of accepting a suboptimal point is given as
+\begin{equation} \label{eq:p_annealing}
+P(\text{accept } x) = \min \left\{1, \, \exp{\frac{f^\star - f(x)}{T_0/k}} \right\},
+\end{equation}
+where $T_0$ is the initial temperature and $k$ is a counter that is increased with every cycle of the algorithm. The value for $T_0$ is generally determined at the start of the algorithm and depends on typical differences $f(x_{i+1})-f(x_i)$ between iterates.
+
+An implementation of Fast Simulated Annealing with an arbitrary initial temperature of $T_0 = 1000$ led to moderate improvements in the tunneling algorithm's performance on some objective functions.
 
 
+\subsection{ILS features already implemented in the tunneling algorithm}
+Lourenço et al. mention random restart as a simple possibility to find more optimal points \cite[\S 5.2.2]{lourenco_iterated_2003}. This is indirectly included as a feature of the tunneling algorithm: When the perturbations of the previous minimal point fail to locate a new minimal point, a global search phase is initiated, in which a descent method is applied on random points of the domain of the tunneling function. What separates this implementation by Levy and Montalvo from the idea described by Lourenço et al. is the fact that the descent method starting from the random points is applied on the tunneling function instead of the original objective function. This means that information about previous minimal points is not ignored and the search is again prevented from terminating with suboptimal local minimal points. 
 
+Another point raised in \cite{lourenco_iterated_2003} is that incorporating memory in the search for new points to start minimization phases from improves performance. Especially for functions with lots of global minimal points sharing an objective function value, the location of previously found minimal points being saved and incorporated as poles is such a form of memory. This also contributes to another desirable attribute of iterated local search methods brought up by Lourenço et al.: the fact that they should not be able to return to previously visited optima. 
 
 \section{Conclusion}
 
-Die Arbeit sollte mit einer Zusammenfassung oder einem Fazit abschließen.
+
 
 \printbibliography
 
