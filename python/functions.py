@@ -1,7 +1,12 @@
+"""
+This file contains the implementations of the test functions and their gradients.
+Some of the functions taken from Levy and Montalvo (1985) were implemented with the help of Google Gemini.
+"""
 import numpy as np
 
 """
-Shubert function
+f1, f2, f3
+Shubert function, as in Levy and Montalvo (1985). 
 """
 def shubert(x):
     x = np.asarray(x)
@@ -46,7 +51,8 @@ def shubert_grad(x):
 
 
 """
-Altered Shubert function
+f5
+Altered Shubert function from Levy and Montalvo (1985)
 """
 def altered_shubert(x):
     return shubert(x) + 0.5 * ((x[0] + 1.42513) ** 2 + (x[1] + 0.80032) ** 2)
@@ -59,7 +65,8 @@ def altered_shubert_grad(x):
 
 
 """
-Six-Hump Camel function
+f4
+Six-Hump Camel function from Levy and Montalvo (1985)
 """
 def six_hump_camel(x):
     x1, x2 = x
@@ -84,10 +91,10 @@ def six_hump_camel_grad(x):
 
 
 """
-Function 16
+f9, f10, f11
+Equation 16 from Levy and Montalvo (1985)
 """
 def function_16(x, k=10, A=1):
-    """Implementation of Equation (16) from image_1d2eb3.png."""
     x = np.asarray(x)
     n = len(x)
     pi = np.pi
@@ -99,7 +106,6 @@ def function_16(x, k=10, A=1):
     return (pi / n) * (term1 + sum_part + term3)
 
 def function_16_grad(x, k=10, A=1):
-    """Gradient of Equation (16) from image_1d2eb3.png."""
     x = np.asarray(x)
     n = len(x)
     pi = np.pi
@@ -120,6 +126,10 @@ def function_16_grad(x, k=10, A=1):
 
     return (pi / n) * grad
 
+"""
+f6, f7, f8
+Equation 15 from Levy and Montalvo (1985)
+"""
 def function_15(x, k=10, A=1):
     x = np.asarray(x)
     y = 1 + 0.25 * (x - 1)
@@ -132,10 +142,9 @@ def function_15_grad(x, k=10, A=1):
 
 
 """
-Function 17
+Equation 17 from Levy and Montalvo (1985)
 """
 def function_17(x, k0=1.0, k1=0.1, A=1.0, l0=3.0, l1=2.0):
-    """Implementation of Equation (17) from image_1cbd61.png."""
     x = np.asarray(x)
     n = len(x)
     pi = np.pi
@@ -154,7 +163,6 @@ def function_17(x, k0=1.0, k1=0.1, A=1.0, l0=3.0, l1=2.0):
     return term1 + k1 * sum_part + k1 * term_final
 
 def function_17_grad(x, k0=1.0, k1=0.1, A=1.0, l0=3.0, l1=2.0):
-    """Gradient of Equation (17) from image_1cbd61.png."""
     x = np.asarray(x)
     n = len(x)
     pi = np.pi
@@ -189,7 +197,9 @@ def function_17_grad(x, k0=1.0, k1=0.1, A=1.0, l0=3.0, l1=2.0):
     
     return k1 * grad
 
-
+"""
+The following functions were not used in the basket of tests
+"""
 def altered_cos(x):
     x = np.asarray(x)
     return np.array([np.cos(x[0]) + 0.2 * x[0]**2])

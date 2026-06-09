@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 """
-This script implements the tunneling algorithm as described in "The Tunneling ALgorithm for the 
+This script implements the tunneling algorithm as described in "The Tunneling Algorithm for the 
     Global Minimization of Functions" by Levy and Montalvo (1985).
 Modifications to their algorithm are marked with `improved` and `annealing` flags.
 
@@ -38,7 +38,8 @@ class TunnelingAlgorithm:
         self.improved = improved # If True, distance between xm and x_new is independent of x_hat
         self.annealing = annealing # If True, allow annealing steps during tunneling
 
-        self.temperature_0 = 1000
+        self.temperature_0 = self.determine_initial_temperature() if annealing else None # Initial temperature for annealing
+        self.alpha_sa = 0.95 # Cooling rate for simulated annealing; this is a hyperparameter that could be tuned
 
     '''
     Input: Initial point `x_0` for the tunneling algorithm, and maximum number of cycles to perform.
@@ -50,6 +51,7 @@ class TunnelingAlgorithm:
         current_x = x_0
         for cycle_counter in range(self.max_cycles):
             self.k = cycle_counter+1 if self.annealing else None
+
             # 1. Minimization Phase
             print(f"starting minimization phase at {current_x} with f={self.f(current_x)}") if self.verbose else None
             x_star, f_val = self.minimization_phase(current_x)
@@ -66,7 +68,7 @@ class TunnelingAlgorithm:
             # If a new minimizer at the same level is found, add it to the list of minimizers
             elif abs(f_val - self.f_star) <= self.eps1:
                 # (Double-check to avoid duplicates)
-                if not any(np.linalg.norm(x_star - prev) < 1e-3 for prev in self.x_stars):
+                if not any(np.linalg.norm(x_star - prev) < 1e-2 for prev in self.x_stars):
                     print(f"New minimizer found at {x_star} with f={f_val}") if self.verbose else None
                     self.x_stars.append(x_star)
                     self.lambda_list.append(1.0) # Add a new pole for the new minimum
@@ -131,7 +133,7 @@ class TunnelingAlgorithm:
 
             # Search for a point x with T(x) <= eps3, starting the search from x_star + epsilon:
             print(f"    Running restoration algorithm from {x_star + epsilon}") if self.verbose else None
-            next_start = self.run_restoration(x_star + epsilon)
+            next_start = self.run_restoration(x_star, epsilon)
             if next_start is not None:
                 print(f"Found valid start point at {next_start}") if self.verbose else None
                 return next_start
@@ -176,33 +178,33 @@ class TunnelingAlgorithm:
         return self.lambda_max
 
     '''
-    Input: An iterate `x_start` that serves as the initial point for the restoration algorithm.
+    Input: An iterate `x_start` and a perturbation vector `epsilon` that serve as the initial point for the restoration algorithm.
     Output: A new starting point for the next minimization phase, or `None` if no valid point is found.
 
     This function implements the restoration algorithm as described in section 2.3.4 of the paper, which is used 
         during the tunneling phase to find a new point that satisfies T(x) < eps3.
     '''
-    def run_restoration(self, x_start):
-        x_hat = self.apply_bounds(x_start) # The point that we move away from
+    def run_restoration(self, x_start, epsilon=0):
+        x_hat = self.apply_bounds(x_start + epsilon) # The point that we move away from
         x_m = np.copy(x_start) # Initial movable pole position
-        lambda_0 = 0.0         # Initial movable pole strength
+
+        # In simulated annealing, there is the risk of staring in a local minimum known not to be a global minimum that thus does not have a pole added.
+        # To make sure the algorithm doesn't immediately get stuck, we add a temporary pole for the first iteration in that case.
+        if self.annealing and not any(np.allclose(x_start, prev) for prev in self.x_stars):
+            lambda_0 = self.find_iterative_lambda_0(x_m, x_start + epsilon, x_m)
+        
+        else:
+            lambda_0 = 0.0
         
         for _ in range(self.ns):
             t_val, t_grad = self.get_t_and_grad(x_hat, x_m, lambda_0)
             
             # 1. Check for Tunnel Exit
             if t_val <= self.eps3:
-                # Must be far from ALL found minima to be a valid new start
+                # Must be far from all found minima to be a valid new start
                 if all(np.linalg.norm(x_hat - prev) > 1e-2 for prev in self.x_stars):
                     return x_hat
                 
-            elif self.annealing and np.exp((self.f_star-self.f(x_hat))/(self.temperature_0/self.k)) > np.random.uniform(0,1):
-                print(f"    Trying annealing step from {x_hat} with T={t_val}") if self.verbose else None
-                if self.minimization_phase(x_hat)[1] < self.f_star + self.eps1:
-                    print(f"    Annealing step successful from {x_hat} with T={t_val}") if self.verbose else None
-                    return x_hat
-
-
             # 2. Calculate Displacement (Section 2.3.4)
             print(f"        Calculating displacement to find next restoration iterate") if self.verbose else None
             delta_x = self.get_displacement(x_hat, x_m, lambda_0)
@@ -227,26 +229,37 @@ class TunnelingAlgorithm:
                 break
 
             # 4. Handle Movable Pole (Appendix I, Step 3)
-            x_m = self.determine_xm(x_hat, x_new)
-            print(f"        Updated movable pole position to x_m={x_m}") if self.verbose else None
-            print(f"        Calculating displacement to see if lambda_0 has to be increased") if self.verbose else None
-            delta_x_from_x_new_to_x_tilde = self.get_displacement(x_new, x_m, lambda_0)
-            u = np.dot(x_new - x_hat, delta_x_from_x_new_to_x_tilde) 
-            if u <= 0:
-                # landed in undesirable local minimum of T(x); update pole[cite: 1]
-                lambda_0 = self.find_iterative_lambda_0(x_hat, x_new, x_m)
-                print(f"        Updating lambda_0 to {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
+            if self.annealing:
+                lambda_0 = 0
             else:
-                # Heuristic reset rule (A.9): return to simpler geometry[cite: 1]
-                # Compute displacement for lambda_0 = 0[cite: 1]
-                print(f"        Calculating displacement to see if lambda_0 can be reset to 0") if self.verbose else None
-                delta_x_0 = self.get_displacement(x_new, x_m, 0.0)
-                if np.dot(delta_x_0, delta_x_from_x_new_to_x_tilde) > 0:
-                    print(f"        Resetting lambda_0 to 0 for movable pole at x_m={x_m}") if self.verbose else None
-                    lambda_0 = 0.0
+                x_m = self.determine_xm(x_hat, x_new)
+                print(f"        Updated movable pole position to x_m={x_m}") if self.verbose else None
+                print(f"        Calculating displacement to see if lambda_0 has to be increased") if self.verbose else None
+                delta_x_from_x_new_to_x_tilde = self.get_displacement(x_new, x_m, lambda_0)
+                u = np.dot(x_new - x_hat, delta_x_from_x_new_to_x_tilde) 
+                if u <= 0:
+                    # landed in undesirable local minimum of T(x); update pole[cite: 1]
+                    lambda_0 = self.find_iterative_lambda_0(x_hat, x_new, x_m)
+                    print(f"        Updating lambda_0 to {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
                 else:
-                    print(f"        Keeping lambda_0 at {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
+                    # Heuristic reset rule (A.9): return to simpler geometry[cite: 1]
+                    # Compute displacement for lambda_0 = 0[cite: 1]
+                    print(f"        Calculating displacement to see if lambda_0 can be reset to 0") if self.verbose else None
+                    delta_x_0 = self.get_displacement(x_new, x_m, 0.0)
+                    if np.dot(delta_x_0, delta_x_from_x_new_to_x_tilde) > 0:
+                        print(f"        Resetting lambda_0 to 0 for movable pole at x_m={x_m}") if self.verbose else None
+                        lambda_0 = 0.0
+                    else:
+                        print(f"        Keeping lambda_0 at {lambda_0} for movable pole at x_m={x_m}") if self.verbose else None
 
+            diff_f = self.f_star - self.f(x_new)
+            if diff_f > 0: # If the new point is better than the best known minimum, return it
+                return x_new
+            
+            # Otherwise, if annealing is enabled, allow for a probabilistic step to move to a minimization phase
+            if self.annealing and np.exp((diff_f)/(self.temperature_0 * self.alpha_sa**self.k)) > np.random.uniform(0,1):
+                print(f"    Annealing step from {x_hat} with T={t_val}") if self.verbose else None
+                return x_new
             x_hat = x_new
             
         return None
@@ -284,10 +297,9 @@ class TunnelingAlgorithm:
     def get_displacement(self, x, x_m, lambda_0):
         t_val, t_grad = self.get_t_and_grad(x, x_m, lambda_0)
         denom = np.dot(t_grad, t_grad)
-        # Eq. in section 2.3.4[cite: 1]
+        # Eq. in section 2.3.4
         displacement = -(t_val / max(denom, 1e-20)) * t_grad
         print(f"        Displacement calculated as {displacement} using t_val={t_val}, t_grad={t_grad}") if self.verbose else None
-        
         
         return displacement
 
@@ -402,3 +414,17 @@ class TunnelingAlgorithm:
             if res is not None:
                 return res
         return None
+    
+    """
+    Input: None (uses class attributes for bounds and dimensions).
+    Output: An estimated initial temperature for the annealing process.
+
+    This function samples random points within the bounds and calculates their function values to estimate a reasonable 
+        initial temperature for the annealing process.
+    """
+    def determine_initial_temperature(self):
+        random_points = np.random.uniform([b[0] for b in self.bounds], [b[1] for b in self.bounds], size=(100, self.dim))
+        f_values = np.array([self.f(pt) for pt in random_points])
+        f_star_estimate = np.min(f_values)
+        f_10_percentile = np.percentile(f_values, 10)
+        return (f_star_estimate - f_10_percentile) / np.log(0.9)

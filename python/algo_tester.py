@@ -19,6 +19,13 @@ class Algorithm_Tester:
         function_16_5d_starting_points = np.random.uniform(-10, 10, (10, 5))
         function_16_8d_starting_points = np.random.uniform(-10, 10, (10, 8))
         function_16_10d_starting_points = np.random.uniform(-10, 10, (10, 10))
+        function_17_2d_starting_points = np.random.uniform(-10, 10, (10, 2))
+        function_17_3d_starting_points = np.random.uniform(-10, 10, (10, 3))
+        function_17_4d_starting_points = np.random.uniform(-10, 10, (10, 4))
+        function_17_5d_starting_points = np.random.uniform(-5, 5, (10, 5))
+        function_17_6d_starting_points = np.random.uniform(-5, 5, (10, 6))
+        function_17_7d_starting_points = np.random.uniform(-5, 5, (10, 7))
+
 
 
         self.test_list = []
@@ -132,17 +139,77 @@ class Algorithm_Tester:
             'minima_count': 1,
             'nr_trials': function_16_10d_starting_points.shape[0],
         })
+        self.test_list.append({
+            'name': 'Function 17 2D',
+            'function': fn.function_17, 
+            'grad': fn.function_17_grad,
+            'bounds': [[-10, 10], [-10, 10]],
+            'starting_points': function_17_2d_starting_points,
+            'global_min': 0.0,
+            'minima_count': 1,
+            'nr_trials': function_17_2d_starting_points.shape[0],
+        })
+        self.test_list.append({
+            'name': 'Function 17 3D',
+            'function': fn.function_17, 
+            'grad': fn.function_17_grad,
+            'bounds': [[-10, 10], [-10, 10], [-10, 10]],
+            'starting_points': function_17_3d_starting_points,
+            'global_min': 0.0,
+            'minima_count': 1,
+            'nr_trials': function_17_3d_starting_points.shape[0],
+        })
+        self.test_list.append({
+            'name': 'Function 17 4D',
+            'function': fn.function_17, 
+            'grad': fn.function_17_grad,
+            'bounds': [[-10, 10], [-10, 10], [-10, 10], [-10, 10]],
+            'starting_points': function_17_4d_starting_points,
+            'global_min': 0.0,
+            'minima_count': 1,
+            'nr_trials': function_17_4d_starting_points.shape[0],
+        })
+        self.test_list.append({
+            'name': 'Function 17 5D',
+            'function': fn.function_17, 
+            'grad': fn.function_17_grad,
+            'bounds': [[-5, 5]]*5,
+            'starting_points': function_17_5d_starting_points,
+            'global_min': 0.0,
+            'minima_count': 1,
+            'nr_trials': function_17_5d_starting_points.shape[0],
+        })
+        self.test_list.append({
+            'name': 'Function 17 6D',
+            'function': fn.function_17, 
+            'grad': fn.function_17_grad,
+            'bounds': [[-5, 5]]*6,
+            'starting_points': function_17_6d_starting_points,
+            'global_min': 0.0,
+            'minima_count': 1,
+            'nr_trials': function_17_6d_starting_points.shape[0],
+        })
+        self.test_list.append({
+            'name': 'Function 17 7D',
+            'function': fn.function_17, 
+            'grad': fn.function_17_grad,
+            'bounds': [[-5, 5]]*7,
+            'starting_points': function_17_7d_starting_points,
+            'global_min': 0.0,
+            'minima_count': 1,
+            'nr_trials': function_17_7d_starting_points.shape[0],
+        })
 
         self.results_list = []
 
     
     def run_tests(self, algorithm, **kwargs):
         for test in self.test_list:
-            start_time = time.perf_counter()
+            start_time = time.process_time()
             avg_nr_minima_found, nr_failures = self.test_algorithm(algorithm, test, **kwargs)
-            end_time = time.perf_counter()
+            end_time = time.process_time()
             time_per_trial = (end_time - start_time) / test['nr_trials']
-            print(f"Test: {test['name']}, average number of minima found when successful: {avg_nr_minima_found:.2f} out of {test['minima_count']}, failure rate: {nr_failures/test['nr_trials']:.2%} over {test['nr_trials']} trials, time per trial: {time_per_trial:.3f} seconds.")
+            print(f"Test: {test['name']}, average number of minima found: {avg_nr_minima_found:.2f} out of {test['minima_count']}, failure rate: {nr_failures/test['nr_trials']:.2%} over {test['nr_trials']} trials, time per trial: {time_per_trial:.3f} CPU seconds.")
 
         self.results_list.append({
             'function': test['name'], 
@@ -159,10 +226,11 @@ class Algorithm_Tester:
         for x0 in test['starting_points']:
             algo = algorithm(f=test['function'], f_grad=test['grad'], bounds=test['bounds'], **kwargs)
             minima, f_min = algo.apply_algorithm(x0)
-            if abs(f_min - test['global_min']) < 1e-5:
+            if abs(f_min - test['global_min']) < 1e-6:
                 found_minima_count.append(len(minima))
             else:
                 nr_failures += 1
+                found_minima_count.append(0)
         mean_found_count = np.mean(found_minima_count) if len(found_minima_count) > 0 else 0
         return mean_found_count, nr_failures
             
